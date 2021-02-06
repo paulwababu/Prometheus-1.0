@@ -202,8 +202,8 @@ _Published at {:02}/{:02}/{:02} {:02}:{:02}:{:02} UTC_
 
 #############################################################
 def getAccessToken(request):
-    consumer_key = 'qaB31tWrbH4psywuGIfGnvekxMganto4'
-    consumer_secret = 'YlH4kc0RqJrkmQJy'
+    consumer_key = '#'
+    consumer_secret = '#'
     api_URL = 'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
     r = requests.get(api_URL, auth=HTTPBasicAuth(consumer_key, consumer_secret))
     mpesa_access_token = json.loads(r.text)
