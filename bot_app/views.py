@@ -1,6 +1,6 @@
 from twilio.twiml.messaging_response import MessagingResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 import requests
 import datetime
 import emoji
@@ -10,6 +10,14 @@ import dns
 import dns.resolver
 import phonenumbers
 from phonenumbers import geocoder
+from requests.auth import HTTPBasicAuth
+from . mpesa_credentials import MpesaAccessToken, LipanaMpesaPpassword
+from django.views.decorators.csrf import csrf_exempt
+from .models import MpesaPayment
+
+cash = ""
+number_yake = ""
+
 
 @csrf_exempt
 def index(request):
@@ -35,6 +43,7 @@ You can give me the following commands:
 :black_small_square: *'instagram <username>'*: Retrieve publicly-available Instagram Profile. That includes name, bio, followers information along with profile pictures eg "instagram xtiandela":winking face:
 :black_small_square: *'meme'*: The top memes of today, fresh from r/memes. :hankey:
 :black_small_square: *'news'*: Latest news from around the world. :newspaper:
+:black_small_square: *'donate'*: Donate via MPESA eg "donate 200 254797584194" where (200) is the amount and (254...) is your MPESA number :superhero:
 """, use_aliases=True)
             msg.body(response)
             responded = True
@@ -73,6 +82,18 @@ You can give me the following commands:
             #msg.media('https://cataas.com/cat')
             
             responded = True
+
+
+        elif incoming_msg.startswith('donate'):
+            word_list = incoming_msg.split()
+            global cash
+            global number_yake
+            cash = word_list[1]
+            number_yake = word_list[-1]
+            stk = requests.get("https://0fea66d94d75.ngrok.io/api/v1/online/lipa")
+            msg.body("Enter MPESA PIN to complete transcation")
+            responded = True
+
 
         elif incoming_msg.startswith('instagram'):
             search_textt = incoming_msg.replace('instagram', '')
@@ -177,3 +198,84 @@ _Published at {:02}/{:02}/{:02} {:02}:{:02}:{:02} UTC_
              msg.body("Sorry, I don't understand. Send 'hello' for a list of commands.")
 
         return HttpResponse(str(resp))
+
+
+#############################################################
+def getAccessToken(request):
+    consumer_key = 'qaB31tWrbH4psywuGIfGnvekxMganto4'
+    consumer_secret = 'YlH4kc0RqJrkmQJy'
+    api_URL = 'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
+    r = requests.get(api_URL, auth=HTTPBasicAuth(consumer_key, consumer_secret))
+    mpesa_access_token = json.loads(r.text)
+    validated_mpesa_access_token = mpesa_access_token['access_token']
+    return HttpResponse(validated_mpesa_access_token)
+def lipa_na_mpesa_online(request):
+    access_token = MpesaAccessToken.validated_mpesa_access_token
+    api_url = "https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
+    headers = {"Authorization": "Bearer %s" % access_token}
+    global cash
+    global number_yake
+    request = {
+        "BusinessShortCode": LipanaMpesaPpassword.Business_short_code,
+        "Password": LipanaMpesaPpassword.decode_password,
+        "Timestamp": LipanaMpesaPpassword.lipa_time,
+        "TransactionType": "CustomerBuyGoodsOnline",
+        "Amount": cash,
+        "PartyA": int(number_yake), # replace with your phone number to get stk push
+        "PartyB": LipanaMpesaPpassword.Business_short_code,
+        "PhoneNumber": int(number_yake),# replace with your phone number to get stk push
+        "CallBackURL": "https://api.safaricom.co.ke/mpesa/",
+        "AccountReference": "PaulWababu",
+        "TransactionDesc": "Donate to PaulWababu!"
+    }
+    response = requests.post(api_url, json=request, headers=headers)
+    return HttpResponse('success')
+@csrf_exempt
+def register_urls(request):
+    access_token = MpesaAccessToken.validated_mpesa_access_token
+    api_url = "https://api.safaricom.co.ke/mpesa/c2b/v1/registerurl"
+    headers = {"Authorization": "Bearer %s" % access_token}
+    options = {"ShortCode": LipanaMpesaPpassword.Test_c2b_shortcode,
+               "ResponseType": "Completed",
+               "ConfirmationURL": "https://0fea66d94d75.ngrok.io/api/v1/c2b/confirmation",
+               "ValidationURL": "https://0fea66d94d75.ngrok.io/api/v1/c2b/validation"}
+    response = requests.post(api_url, json=options, headers=headers)
+    return HttpResponse(response.text)
+
+
+
+@csrf_exempt
+def call_back(request):
+    pass
+
+
+
+
+@csrf_exempt
+def validation(request):
+    context = {
+        "ResultCode": 0,
+        "ResultDesc": "Accepted"
+    }
+    return JsonResponse(dict(context))
+@csrf_exempt
+def confirmation(request):
+    mpesa_body =request.body.decode('utf-8')
+    mpesa_payment = json.loads(mpesa_body)
+    payment = MpesaPayment(
+        first_name=mpesa_payment['FirstName'],
+        last_name=mpesa_payment['LastName'],
+        middle_name=mpesa_payment['MiddleName'],
+        description=mpesa_payment['TransID'],
+        phone_number=mpesa_payment['MSISDN'],
+        amount=mpesa_payment['TransAmount'],
+        reference=mpesa_payment['BillRefNumber'],
+        organization_balance=mpesa_payment['OrgAccountBalance'],
+        type=mpesa_payment['TransactionType'],
+    )
+    payment.save()
+    context = {
+        "ResultCode": 0,
+        "ResultDesc": "Accepted"
+    }
+    return JsonResponse(dict(context))
