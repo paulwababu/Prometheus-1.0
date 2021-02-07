@@ -101,7 +101,7 @@ You can give me the following commands: ALSO NOTE THAT YOU CAN CHAT WITH ME, IF 
             username = search_textt
             url = "https://easy-instagramapi.p.rapidapi.com/v1/profile/"+username
             headers = {
-                'x-rapidapi-key': "43628cd680msh1812b1660500eb7p182976jsn5dda2f77f08f",
+                'x-rapidapi-key': "#",
                 'x-rapidapi-host': "easy-instagramapi.p.rapidapi.com"
      
             }
@@ -195,7 +195,7 @@ _Published at {:02}/{:02}/{:02} {:02}:{:02}:{:02} UTC_
             responded = True
 
         if not responded:
-            url = "https://smalltalk-nlu.p.rapidapi.com/api/v1/smalltalk"
+            url = "#"
             text = incoming_msg
             payload = "languageCode=en-US&query="+text
             headers = {
@@ -215,8 +215,8 @@ _Published at {:02}/{:02}/{:02} {:02}:{:02}:{:02} UTC_
 
 #############################################################
 def getAccessToken(request):
-    consumer_key = 'qaB31tWrbH4psywuGIfGnvekxMganto4'
-    consumer_secret = 'YlH4kc0RqJrkmQJy'
+    consumer_key = '#'
+    consumer_secret = '#'
     api_URL = 'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
     r = requests.get(api_URL, auth=HTTPBasicAuth(consumer_key, consumer_secret))
     mpesa_access_token = json.loads(r.text)
