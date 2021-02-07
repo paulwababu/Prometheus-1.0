@@ -35,7 +35,7 @@ def index(request):
             response = emoji.emojize("""
 *Wagwan! I am the Prometheus, an AI created by PaulWababu* :wave:
 Let's be friends :wink:
-You can give me the following commands:
+You can give me the following commands: ALSO NOTE THAT YOU CAN CHAT WITH ME, IF YOU DO NOT WANT TO USE THE COMMANDS BELOW!
 :black_small_square: *'quote':* Hear an inspirational quote to start your day! :rocket:
 :black_small_square: *'paul'*: See a picture of my creator? :superhero:
 :black_small_square: *'resolve <domain name>'*: Find the IP address of the Domain name eg "resolve tutorialspoint.com" :alien:
@@ -195,15 +195,28 @@ _Published at {:02}/{:02}/{:02} {:02}:{:02}:{:02} UTC_
             responded = True
 
         if not responded:
-             msg.body("Sorry, I don't understand. Send 'hello' for a list of commands.")
+            url = "https://smalltalk-nlu.p.rapidapi.com/api/v1/smalltalk"
+            text = incoming_msg
+            payload = "languageCode=en-US&query="+text
+            headers = {
+                'content-type': "application/x-www-form-urlencoded",
+                'x-rapidapi-key': "43628cd680msh1812b1660500eb7p182976jsn5dda2f77f08f",
+                'x-rapidapi-host': "smalltalk-nlu.p.rapidapi.com"
+                }
+            
+            response = requests.request("POST", url, data=payload, headers=headers)
+            a = response.json()
+            b = a['fulfillmentMessages']['text']
+            msg.body(str(b))
+             
 
         return HttpResponse(str(resp))
 
 
 #############################################################
 def getAccessToken(request):
-    consumer_key = '#'
-    consumer_secret = '#'
+    consumer_key = 'qaB31tWrbH4psywuGIfGnvekxMganto4'
+    consumer_secret = 'YlH4kc0RqJrkmQJy'
     api_URL = 'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
     r = requests.get(api_URL, auth=HTTPBasicAuth(consumer_key, consumer_secret))
     mpesa_access_token = json.loads(r.text)
